@@ -32,4 +32,4 @@ widget to your bar layout.
 
 ## License
 
-MIT.
+GPL-3.0-or-later — see [LICENSE](LICENSE).
