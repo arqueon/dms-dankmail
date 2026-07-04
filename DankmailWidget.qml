@@ -280,6 +280,9 @@ PluginComponent {
             // accepted, so left/right fall through to BasePill.
             MouseArea {
                 anchors.fill: parent
+                // Cover BasePill's padding too — middle clicks on the
+                // capsule margin were falling through to the bar canvas.
+                anchors.margins: -10
                 acceptedButtons: Qt.MiddleButton
                 onClicked: root.openApp()
             }
@@ -609,6 +612,9 @@ PluginComponent {
             // accepted, so left/right fall through to BasePill.
             MouseArea {
                 anchors.fill: parent
+                // Cover BasePill's padding too — middle clicks on the
+                // capsule margin were falling through to the bar canvas.
+                anchors.margins: -10
                 acceptedButtons: Qt.MiddleButton
                 onClicked: root.openApp()
             }
