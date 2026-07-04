@@ -1,0 +1,21 @@
+{
+  "id": "dankmailUnread",
+  "name": "Dankmail Unread",
+  "description": "Unread mail badge for dankmail with live updates over its IPC socket; click toggles the triage window",
+  "version": "0.1.0",
+  "author": "arqueon",
+  "icon": "mail",
+  "type": "widget",
+  "capabilities": [
+    "dankbar-widget"
+  ],
+  "component": "./DankmailWidget.qml",
+  "settings": "./DankmailSettings.qml",
+  "requires": [
+    "dmail"
+  ],
+  "permissions": [
+    "settings_read",
+    "settings_write"
+  ]
+}
