@@ -20,9 +20,11 @@ PluginComponent {
     property int unread: 0
     property bool dnd: false
     property var threads: []
+    property bool syncing: false
     property int _reqId: 0
     property int _statusReqId: -1
     property int _threadsReqId: -1
+    property int _syncReqId: -1
 
     readonly property string socketPath: {
         const rt = Quickshell.env("XDG_RUNTIME_DIR");
@@ -99,8 +101,22 @@ PluginComponent {
     }
 
     // Left click opens the popout (automatic when popoutContent is set);
-    // right click syncs.
-    pillRightClickAction: () => root.uiCall("system.sync", {})
+    // right click syncs, with visible feedback while it runs.
+    pillRightClickAction: () => root.syncNow()
+
+    function syncNow() {
+        if (!cmdSocket.connected || root.syncing)
+            return;
+        root._reqId++;
+        root._syncReqId = root._reqId;
+        root.syncing = true;
+        syncGuard.restart();
+        send(cmdSocket, {
+            "id": root._syncReqId,
+            "method": "system.sync",
+            "params": {}
+        });
+    }
 
     Component.onCompleted: cmdSocket.connected = true
 
@@ -135,6 +151,11 @@ PluginComponent {
                 }
                 if (msg.id === undefined)
                     return;
+                if (msg.id === root._syncReqId) {
+                    root.syncing = false;
+                    syncGuard.stop();
+                    return;
+                }
                 if (msg.id === root._statusReqId && msg.result) {
                     root.unread = msg.result.unread || 0;
                     root.dnd = !!msg.result.dnd;
@@ -186,6 +207,14 @@ PluginComponent {
         }
     }
 
+    // Clears the syncing indicator if the daemon never answers.
+    Timer {
+        id: syncGuard
+        interval: 30000
+        repeat: false
+        onTriggered: root.syncing = false
+    }
+
     Timer {
         id: retryTimer
         interval: 4000
@@ -220,11 +249,12 @@ PluginComponent {
             visible: !root.pillHidden
 
             // Middle click on the pill: open the app directly (left
-            // opens the popout, right syncs). BasePill only consumes
-            // left/right, so the middle button reaches us here.
-            TapHandler {
+            // opens the popout, right syncs). Only MiddleButton is
+            // accepted, so left/right fall through to BasePill.
+            MouseArea {
+                anchors.fill: parent
                 acceptedButtons: Qt.MiddleButton
-                onTapped: {
+                onClicked: {
                     if (root.daemonConnected)
                         Quickshell.execDetached(["dmail", "show"]);
                     else
@@ -244,11 +274,13 @@ PluginComponent {
 
                     DankIcon {
                         anchors.fill: parent
-                        name: root.dnd ? "notifications_off" : "mail"
+                        name: root.syncing ? "sync" : (root.dnd ? "notifications_off" : "mail")
                         size: root.iconSize
                         color: {
                             if (!root.daemonConnected)
                                 return Theme.surfaceVariantText;
+                            if (root.syncing)
+                                return Theme.primary;
                             return root.unread > 0 ? Theme.primary : Theme.surfaceText;
                         }
                     }
@@ -356,8 +388,9 @@ PluginComponent {
 
                     DankActionButton {
                         iconName: "sync"
+                        iconColor: root.syncing ? Theme.primary : Theme.surfaceText
                         visible: root.daemonConnected
-                        onClicked: root.uiCall("system.sync", {})
+                        onClicked: root.syncNow()
                     }
 
                     DankActionButton {
@@ -553,11 +586,12 @@ PluginComponent {
             visible: !root.pillHidden
 
             // Middle click on the pill: open the app directly (left
-            // opens the popout, right syncs). BasePill only consumes
-            // left/right, so the middle button reaches us here.
-            TapHandler {
+            // opens the popout, right syncs). Only MiddleButton is
+            // accepted, so left/right fall through to BasePill.
+            MouseArea {
+                anchors.fill: parent
                 acceptedButtons: Qt.MiddleButton
-                onTapped: {
+                onClicked: {
                     if (root.daemonConnected)
                         Quickshell.execDetached(["dmail", "show"]);
                     else
@@ -571,7 +605,7 @@ PluginComponent {
                 anchors.horizontalCenter: parent.horizontalCenter
 
                 DankIcon {
-                    name: root.dnd ? "notifications_off" : "mail"
+                    name: root.syncing ? "sync" : (root.dnd ? "notifications_off" : "mail")
                     size: root.iconSize
                     color: {
                         if (!root.daemonConnected)
