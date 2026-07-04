@@ -33,6 +33,15 @@ PluginComponent {
 
     readonly property bool pillHidden: hideWhenZero && daemonConnected && unread === 0
 
+    // openApp is PATH-proof: the DMS process may not have ~/.local/bin
+    // in PATH, so try the user install location first.
+    function openApp() {
+        if (root.daemonConnected)
+            Quickshell.execDetached(["sh", "-c", "exec \"$HOME/.local/bin/dmail\" show 2>/dev/null || exec dmail show"]);
+        else
+            Quickshell.execDetached(["systemctl", "--user", "start", "dmail"]);
+    }
+
     function send(sock, obj) {
         sock.write(JSON.stringify(obj) + "\n");
         sock.flush();
@@ -143,6 +152,7 @@ PluginComponent {
             onRead: line => {
                 if (!line || line.length === 0)
                     return;
+                root._lastSeen = Date.now();
                 let msg;
                 try {
                     msg = JSON.parse(line);
@@ -215,14 +225,24 @@ PluginComponent {
         onTriggered: root.syncing = false
     }
 
+    property double _lastSeen: 0
+
+    // Reconnect with the explicit false→true toggle (the raw Socket can
+    // keep a stale 'connected' after the peer closes — dcal's DankSocket
+    // exists for the same reason).
+    function reconnect() {
+        cmdSocket.connected = false;
+        subSocket.connected = false;
+        Qt.callLater(() => {
+            cmdSocket.connected = true;
+        });
+    }
+
     Timer {
         id: retryTimer
         interval: 4000
         repeat: false
-        onTriggered: {
-            if (!cmdSocket.connected)
-                cmdSocket.connected = true;
-        }
+        onTriggered: root.reconnect()
     }
 
     Timer {
@@ -232,12 +252,19 @@ PluginComponent {
         onTriggered: root.refreshStatus()
     }
 
-    // Safety poll: cheap, and covers any missed event.
+    // Safety poll — also detects zombie sockets: if no line arrived in
+    // 90s despite polling every 60s, the connection is dead; recycle it.
     Timer {
         interval: 60000
         running: root.daemonConnected
         repeat: true
-        onTriggered: root.refreshStatus()
+        onTriggered: {
+            if (root._lastSeen > 0 && Date.now() - root._lastSeen > 90000) {
+                root.reconnect();
+                return;
+            }
+            root.refreshStatus();
+        }
     }
 
     readonly property string unreadLabel: unread > 99 ? "99+" : String(unread)
@@ -254,12 +281,7 @@ PluginComponent {
             MouseArea {
                 anchors.fill: parent
                 acceptedButtons: Qt.MiddleButton
-                onClicked: {
-                    if (root.daemonConnected)
-                        Quickshell.execDetached(["dmail", "show"]);
-                    else
-                        Quickshell.execDetached(["systemctl", "--user", "start", "dmail"]);
-                }
+                onClicked: root.openApp()
             }
 
             Row {
@@ -359,10 +381,7 @@ PluginComponent {
 
                     TapHandler {
                         onTapped: {
-                            if (root.daemonConnected)
-                                Quickshell.execDetached(["dmail", "show"]);
-                            else
-                                Quickshell.execDetached(["systemctl", "--user", "start", "dmail"]);
+                            root.openApp();
                             if (popout.closePopout)
                                 popout.closePopout();
                         }
@@ -591,12 +610,7 @@ PluginComponent {
             MouseArea {
                 anchors.fill: parent
                 acceptedButtons: Qt.MiddleButton
-                onClicked: {
-                    if (root.daemonConnected)
-                        Quickshell.execDetached(["dmail", "show"]);
-                    else
-                        Quickshell.execDetached(["systemctl", "--user", "start", "dmail"]);
-                }
+                onClicked: root.openApp()
             }
 
             Column {
