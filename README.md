@@ -1,22 +1,55 @@
 # Dankmail Unread — DMS plugin
 
-Live unread-mail badge for the [DankMaterialShell](https://github.com/AvengeMedia/DankMaterialShell)
+Live unread-mail badge and triage popout for the
+[DankMaterialShell](https://github.com/AvengeMedia/DankMaterialShell)
 bar, powered by [dankmail](https://github.com/arqueon/dankmail).
 
-- **Live count, no polling**: subscribes to the dmail daemon's IPC
-  socket and refreshes on its events (new mail, triage actions, snooze
-  wakes).
-- **Left click**: toggle the dankmail triage window (the daemon
-  relaunches the UI if it was closed). If the daemon is down, the
-  click starts the `dmail` systemd user service instead.
-- **Right click**: sync now.
-- **DND dot**: small indicator while dankmail's do-not-disturb is on.
-- Settings: hide the pill at inbox zero, toggle the DND dot.
+## Features
+
+### Bar pill
+- **Live unread badge**: a colored capsule with the count (caps at
+  `99+`), rendered correctly on horizontal and vertical bars.
+- **Icon states**: primary tint while there is unread mail; dimmed
+  when the dmail daemon is not running; bell-off icon plus a small
+  amber dot while dankmail's do-not-disturb is active.
+- **No polling**: the widget keeps two connections to the daemon's
+  IPC socket (command + event subscription) and refreshes the moment
+  anything changes — new mail, actions taken anywhere, snooze wakes —
+  with a 60 s safety poll and automatic reconnection (4 s retry) if
+  the daemon goes away.
+
+### Mouse buttons
+| Button | Action |
+|---|---|
+| **Left** | Open the popout |
+| **Middle** | Open the dankmail window (or start the `dmail` service if it's down) |
+| **Right** | Sync now |
+
+### Popout
+- **Clickable title**: clicking "Dank Mail" (or its status subtitle)
+  opens the app regardless of which mail is focused — and starts the
+  service when the daemon is down.
+- **Status subtitle**: unread count, "inbox zero", or "daemon off".
+- **Header actions**: compose (opens dankmail with the compose modal
+  ready), sync now, do-not-disturb toggle, close.
+- **Latest inbox mail** (up to 20, scrollable): unread emphasis,
+  parsed sender names, per-day/HH:mm timestamps.
+- **Per-message actions on hover** — the notification set: mark
+  read/unread, archive, trash, **snooze** (uses the snooze preset
+  configured in dankmail's settings, same as the notification
+  button), open in the webmail.
+- **Click a message** to jump straight to it in the triage window.
+
+### Plugin settings
+- **Hide when inbox is clear** — collapse the pill at zero unread.
+- **Do-not-disturb indicator** — toggle the amber DND dot.
 
 ## Requires
 
-[`dankmail`](https://github.com/arqueon/dankmail) (the `dmail` daemon)
-installed and set up with at least one account.
+[`dankmail`](https://github.com/arqueon/dankmail) (the `dmail`
+daemon) installed and set up with at least one account. Everything
+speaks the daemon's line-JSON IPC socket
+(`$XDG_RUNTIME_DIR/dankmail.sock`).
 
 ## Install
 
