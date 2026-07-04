@@ -211,6 +211,8 @@ PluginComponent {
         onTriggered: root.refreshStatus()
     }
 
+    readonly property string unreadLabel: unread > 99 ? "99+" : String(unread)
+
     horizontalBarPill: Component {
         Item {
             implicitWidth: root.pillHidden ? 0 : hRow.implicitWidth
@@ -220,6 +222,7 @@ PluginComponent {
             Row {
                 id: hRow
                 spacing: Theme.spacingXS
+                anchors.verticalCenter: parent.verticalCenter
 
                 Item {
                     width: root.iconSize
@@ -248,13 +251,24 @@ PluginComponent {
                     }
                 }
 
-                StyledText {
+                // Unread badge: a proper pill, vertically centered with
+                // the icon.
+                Rectangle {
                     visible: root.daemonConnected && root.unread > 0
-                    text: root.unread > 99 ? "99+" : String(root.unread)
-                    font.pixelSize: Theme.fontSizeSmall
-                    font.weight: Font.Bold
+                    width: Math.max(hBadgeText.implicitWidth + 10, height)
+                    height: 16
+                    radius: height / 2
                     color: Theme.primary
                     anchors.verticalCenter: parent.verticalCenter
+
+                    StyledText {
+                        id: hBadgeText
+                        anchors.centerIn: parent
+                        text: root.unreadLabel
+                        font.pixelSize: Math.max(9, Math.round(Theme.fontSizeSmall * 0.8))
+                        font.weight: Font.Bold
+                        color: Theme.primaryText
+                    }
                 }
             }
         }
@@ -488,7 +502,8 @@ PluginComponent {
 
             Column {
                 id: vCol
-                spacing: 2
+                spacing: 3
+                anchors.horizontalCenter: parent.horizontalCenter
 
                 DankIcon {
                     name: root.dnd ? "notifications_off" : "mail"
@@ -501,13 +516,25 @@ PluginComponent {
                     anchors.horizontalCenter: parent.horizontalCenter
                 }
 
-                StyledText {
+                // Compact centered badge (dcal convention: reduced font,
+                // explicit centering for narrow vertical bars).
+                Rectangle {
                     visible: root.daemonConnected && root.unread > 0
-                    text: root.unread > 99 ? "99+" : String(root.unread)
-                    font.pixelSize: Theme.fontSizeSmall
-                    font.weight: Font.Bold
+                    width: Math.max(vBadgeText.implicitWidth + 8, height)
+                    height: 14
+                    radius: height / 2
                     color: Theme.primary
                     anchors.horizontalCenter: parent.horizontalCenter
+
+                    StyledText {
+                        id: vBadgeText
+                        anchors.centerIn: parent
+                        text: root.unreadLabel
+                        font.pixelSize: Math.max(8, Math.round(Theme.fontSizeSmall * 0.7))
+                        font.weight: Font.Bold
+                        color: Theme.primaryText
+                        horizontalAlignment: Text.AlignHCenter
+                    }
                 }
             }
         }
