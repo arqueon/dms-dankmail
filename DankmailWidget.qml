@@ -53,7 +53,7 @@ PluginComponent {
             "method": "threads.list",
             "params": {
                 "inbox": true,
-                "limit": 10
+                "limit": 20
             }
         });
     }
@@ -313,15 +313,21 @@ PluginComponent {
 
             Item {
                 width: parent.width
-                implicitHeight: threadColumn.implicitHeight + Theme.spacingM
+                // The list scrolls inside a fixed viewport when it grows
+                // beyond the popout.
+                readonly property real maxListHeight: 430
+                implicitHeight: Math.min(threadColumn.implicitHeight + Theme.spacingM * 2, maxListHeight)
 
-                Column {
-                    id: threadColumn
-                    anchors.top: parent.top
-                    anchors.left: parent.left
-                    anchors.right: parent.right
+                DankFlickable {
+                    anchors.fill: parent
                     anchors.margins: Theme.spacingS
-                    spacing: 2
+                    contentHeight: threadColumn.implicitHeight
+                    clip: true
+
+                    Column {
+                        id: threadColumn
+                        width: parent.width
+                        spacing: 2
 
                     StyledText {
                         visible: !root.daemonConnected
@@ -467,6 +473,7 @@ PluginComponent {
                                 }
                             }
                         }
+                    }
                     }
                 }
             }
