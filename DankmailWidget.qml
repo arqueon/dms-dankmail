@@ -280,13 +280,56 @@ PluginComponent {
         PopoutComponent {
             id: popout
 
-            headerText: "Dank Mail"
-            detailsText: root.daemonConnected ? (root.unread > 0 ? root.unread + " sin leer" : "Bandeja en cero") : "daemon apagado"
-            showCloseButton: true
+            // Custom header (the built-in one hides with empty headerText):
+            // the title itself opens the app, wherever the focus is.
+            Item {
+                width: parent.width
+                height: 48
 
-            headerActions: Component {
+                // Clickable title zone.
+                Column {
+                    id: titleZone
+                    anchors.left: parent.left
+                    anchors.leftMargin: Theme.spacingS
+                    anchors.verticalCenter: parent.verticalCenter
+                    spacing: 0
+
+                    StyledText {
+                        text: "Dank Mail"
+                        font.pixelSize: Theme.fontSizeLarge + 2
+                        font.weight: Font.Bold
+                        color: titleHover.hovered ? Theme.primary : Theme.surfaceText
+                    }
+
+                    StyledText {
+                        text: root.daemonConnected ? (root.unread > 0 ? root.unread + " sin leer" : "Bandeja en cero") : "daemon apagado"
+                        font.pixelSize: Theme.fontSizeSmall
+                        color: Theme.surfaceVariantText
+                    }
+
+                    HoverHandler {
+                        id: titleHover
+                        cursorShape: Qt.PointingHandCursor
+                    }
+
+                    TapHandler {
+                        onTapped: {
+                            if (root.daemonConnected)
+                                Quickshell.execDetached(["dmail", "show"]);
+                            else
+                                Quickshell.execDetached(["systemctl", "--user", "start", "dmail"]);
+                            if (popout.closePopout)
+                                popout.closePopout();
+                        }
+                    }
+                }
+
+                // Action buttons sit above the title's tap zone.
                 Row {
                     spacing: Theme.spacingXS
+                    anchors.right: parent.right
+                    anchors.rightMargin: Theme.spacingXS
+                    anchors.verticalCenter: parent.verticalCenter
 
                     DankActionButton {
                         iconName: "edit_square"
@@ -312,12 +355,8 @@ PluginComponent {
                     }
 
                     DankActionButton {
-                        iconName: "open_in_new"
+                        iconName: "close"
                         onClicked: {
-                            if (root.daemonConnected)
-                                Quickshell.execDetached(["dmail", "show"]);
-                            else
-                                Quickshell.execDetached(["systemctl", "--user", "start", "dmail"]);
                             if (popout.closePopout)
                                 popout.closePopout();
                         }
