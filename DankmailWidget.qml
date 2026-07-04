@@ -19,8 +19,10 @@ PluginComponent {
     property bool daemonConnected: false
     property int unread: 0
     property bool dnd: false
+    property var threads: []
     property int _reqId: 0
     property int _statusReqId: -1
+    property int _threadsReqId: -1
 
     readonly property string socketPath: {
         const rt = Quickshell.env("XDG_RUNTIME_DIR");
@@ -44,25 +46,61 @@ PluginComponent {
             "method": "system.status",
             "params": {}
         });
+        root._reqId++;
+        root._threadsReqId = root._reqId;
+        send(cmdSocket, {
+            "id": root._threadsReqId,
+            "method": "threads.list",
+            "params": {
+                "inbox": true,
+                "limit": 10
+            }
+        });
     }
 
-    pillClickAction: () => {
-        if (root.daemonConnected)
-            Quickshell.execDetached(["dmail", "toggle"]);
-        else
-            Quickshell.execDetached(["systemctl", "--user", "start", "dmail"]);
-    }
-
-    pillRightClickAction: () => {
+    // op fires a thread action from the popout; the daemon's optimistic
+    // apply + our event subscription refresh the list right after.
+    function op(method, threadId) {
         if (!cmdSocket.connected)
             return;
         root._reqId++;
-        root.send(cmdSocket, {
+        send(cmdSocket, {
             "id": root._reqId,
-            "method": "system.sync",
-            "params": {}
+            "method": method,
+            "params": {
+                "ids": [threadId]
+            }
         });
     }
+
+    function uiCall(method, params) {
+        if (!cmdSocket.connected)
+            return;
+        root._reqId++;
+        send(cmdSocket, {
+            "id": root._reqId,
+            "method": method,
+            "params": params || {}
+        });
+    }
+
+    function senderOf(t) {
+        const raw = (t.participants && t.participants.length > 0) ? t.participants[0] : "";
+        const m = raw.match(/^\s*"?([^"<]*?)"?\s*<[^>]+>\s*$/);
+        return m && m[1].trim() !== "" ? m[1].trim() : raw;
+    }
+
+    function timeOf(iso) {
+        const d = new Date(iso);
+        const now = new Date();
+        if (d.toDateString() === now.toDateString())
+            return Qt.formatTime(d, "HH:mm");
+        return Qt.formatDate(d, "d MMM");
+    }
+
+    // Left click opens the popout (automatic when popoutContent is set);
+    // right click syncs.
+    pillRightClickAction: () => root.uiCall("system.sync", {})
 
     Component.onCompleted: cmdSocket.connected = true
 
@@ -95,9 +133,13 @@ PluginComponent {
                 } catch (e) {
                     return;
                 }
-                if (msg.id !== undefined && msg.id === root._statusReqId && msg.result) {
+                if (msg.id === undefined)
+                    return;
+                if (msg.id === root._statusReqId && msg.result) {
                     root.unread = msg.result.unread || 0;
                     root.dnd = !!msg.result.dnd;
+                } else if (msg.id === root._threadsReqId) {
+                    root.threads = msg.result || [];
                 }
             }
         }
@@ -213,6 +255,219 @@ PluginComponent {
                     font.weight: Font.Bold
                     color: Theme.primary
                     anchors.verticalCenter: parent.verticalCenter
+                }
+            }
+        }
+    }
+
+    popoutWidth: 440
+    popoutHeight: 520
+    popoutContent: Component {
+        PopoutComponent {
+            id: popout
+
+            headerText: "Dank Mail"
+            detailsText: root.daemonConnected ? (root.unread > 0 ? root.unread + " sin leer" : "Bandeja en cero") : "daemon apagado"
+            showCloseButton: true
+
+            headerActions: Component {
+                Row {
+                    spacing: Theme.spacingXS
+
+                    DankActionButton {
+                        iconName: "edit_square"
+                        visible: root.daemonConnected
+                        onClicked: {
+                            root.uiCall("ui.compose", {});
+                            if (popout.closePopout)
+                                popout.closePopout();
+                        }
+                    }
+
+                    DankActionButton {
+                        iconName: "sync"
+                        visible: root.daemonConnected
+                        onClicked: root.uiCall("system.sync", {})
+                    }
+
+                    DankActionButton {
+                        iconName: root.dnd ? "notifications_off" : "notifications"
+                        iconColor: root.dnd ? Theme.warning : Theme.surfaceText
+                        visible: root.daemonConnected
+                        onClicked: root.uiCall(root.dnd ? "dnd.off" : "dnd.on", {})
+                    }
+
+                    DankActionButton {
+                        iconName: "open_in_new"
+                        onClicked: {
+                            if (root.daemonConnected)
+                                Quickshell.execDetached(["dmail", "show"]);
+                            else
+                                Quickshell.execDetached(["systemctl", "--user", "start", "dmail"]);
+                            if (popout.closePopout)
+                                popout.closePopout();
+                        }
+                    }
+                }
+            }
+
+            Item {
+                width: parent.width
+                implicitHeight: threadColumn.implicitHeight + Theme.spacingM
+
+                Column {
+                    id: threadColumn
+                    anchors.top: parent.top
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.margins: Theme.spacingS
+                    spacing: 2
+
+                    StyledText {
+                        visible: !root.daemonConnected
+                        width: parent.width
+                        text: "El daemon de dankmail no está corriendo. Usa el botón ↗ para iniciarlo."
+                        font.pixelSize: Theme.fontSizeSmall
+                        color: Theme.surfaceVariantText
+                        wrapMode: Text.WordWrap
+                    }
+
+                    StyledText {
+                        visible: root.daemonConnected && root.threads.length === 0
+                        width: parent.width
+                        text: "Sin correos en la bandeja."
+                        font.pixelSize: Theme.fontSizeSmall
+                        color: Theme.surfaceVariantText
+                    }
+
+                    Repeater {
+                        model: root.threads
+
+                        delegate: Rectangle {
+                            id: mailRow
+                            required property var modelData
+
+                            width: threadColumn.width
+                            height: 56
+                            radius: Theme.cornerRadiusSmall
+                            color: rowHover.hovered ? Theme.surfaceContainerHigh : "transparent"
+
+                            HoverHandler {
+                                id: rowHover
+                            }
+
+                            // Row body: unread dot, sender/subject, time.
+                            Row {
+                                anchors.left: parent.left
+                                anchors.right: rowActions.visible ? rowActions.left : parent.right
+                                anchors.leftMargin: Theme.spacingS
+                                anchors.rightMargin: Theme.spacingS
+                                anchors.verticalCenter: parent.verticalCenter
+                                spacing: Theme.spacingS
+
+                                Rectangle {
+                                    width: 8
+                                    height: 8
+                                    radius: 4
+                                    color: mailRow.modelData.unread ? Theme.primary : "transparent"
+                                    anchors.verticalCenter: parent.verticalCenter
+                                }
+
+                                Column {
+                                    width: parent.width - 8 - Theme.spacingS * 2 - timeLabel.implicitWidth
+                                    spacing: 1
+
+                                    StyledText {
+                                        width: parent.width
+                                        text: root.senderOf(mailRow.modelData)
+                                        font.pixelSize: Theme.fontSizeSmall
+                                        font.weight: mailRow.modelData.unread ? Font.Bold : Font.Normal
+                                        color: mailRow.modelData.unread ? Theme.surfaceText : Theme.surfaceVariantText
+                                        elide: Text.ElideRight
+                                        maximumLineCount: 1
+                                    }
+
+                                    StyledText {
+                                        width: parent.width
+                                        text: mailRow.modelData.subject || "(sin asunto)"
+                                        font.pixelSize: Theme.fontSizeSmall
+                                        color: mailRow.modelData.unread ? Theme.surfaceText : Theme.surfaceVariantText
+                                        elide: Text.ElideRight
+                                        maximumLineCount: 1
+                                    }
+                                }
+
+                                StyledText {
+                                    id: timeLabel
+                                    text: root.timeOf(mailRow.modelData.lastMessageAt)
+                                    font.pixelSize: Theme.fontSizeSmall
+                                    color: Theme.surfaceVariantText
+                                    anchors.verticalCenter: parent.verticalCenter
+                                }
+                            }
+
+                            // Hover actions: the notification set, per row.
+                            Row {
+                                id: rowActions
+                                visible: rowHover.hovered
+                                anchors.right: parent.right
+                                anchors.rightMargin: Theme.spacingXS
+                                anchors.verticalCenter: parent.verticalCenter
+                                spacing: 0
+
+                                DankActionButton {
+                                    iconName: mailRow.modelData.unread ? "drafts" : "mark_email_unread"
+                                    buttonSize: 26
+                                    iconSize: 15
+                                    onClicked: root.op(mailRow.modelData.unread ? "ops.markRead" : "ops.markUnread", mailRow.modelData.id)
+                                }
+
+                                DankActionButton {
+                                    iconName: "archive"
+                                    buttonSize: 26
+                                    iconSize: 15
+                                    onClicked: root.op("ops.archive", mailRow.modelData.id)
+                                }
+
+                                DankActionButton {
+                                    iconName: "delete"
+                                    buttonSize: 26
+                                    iconSize: 15
+                                    iconColor: Theme.error
+                                    onClicked: root.op("ops.trash", mailRow.modelData.id)
+                                }
+
+                                DankActionButton {
+                                    iconName: "snooze"
+                                    buttonSize: 26
+                                    iconSize: 15
+                                    onClicked: root.op("ops.snoozePreset", mailRow.modelData.id)
+                                }
+
+                                DankActionButton {
+                                    iconName: "open_in_new"
+                                    buttonSize: 26
+                                    iconSize: 15
+                                    onClicked: root.uiCall("ui.openLink", {
+                                        "id": mailRow.modelData.id
+                                    })
+                                }
+                            }
+
+                            // Click on the row body → open in the triage
+                            // window (the action buttons' own MouseAreas
+                            // take precedence over this handler).
+                            TapHandler {
+                                onTapped: {
+                                    root.uiCall("ui.showThread", {
+                                        "id": mailRow.modelData.id
+                                    });
+                                    if (popout.closePopout)
+                                        popout.closePopout();
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
