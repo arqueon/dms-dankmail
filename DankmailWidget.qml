@@ -219,6 +219,19 @@ PluginComponent {
             implicitHeight: hRow.implicitHeight
             visible: !root.pillHidden
 
+            // Middle click on the pill: open the app directly (left
+            // opens the popout, right syncs). BasePill only consumes
+            // left/right, so the middle button reaches us here.
+            TapHandler {
+                acceptedButtons: Qt.MiddleButton
+                onTapped: {
+                    if (root.daemonConnected)
+                        Quickshell.execDetached(["dmail", "show"]);
+                    else
+                        Quickshell.execDetached(["systemctl", "--user", "start", "dmail"]);
+                }
+            }
+
             Row {
                 id: hRow
                 spacing: Theme.spacingXS
@@ -538,6 +551,19 @@ PluginComponent {
             implicitWidth: vCol.implicitWidth
             implicitHeight: root.pillHidden ? 0 : vCol.implicitHeight
             visible: !root.pillHidden
+
+            // Middle click on the pill: open the app directly (left
+            // opens the popout, right syncs). BasePill only consumes
+            // left/right, so the middle button reaches us here.
+            TapHandler {
+                acceptedButtons: Qt.MiddleButton
+                onTapped: {
+                    if (root.daemonConnected)
+                        Quickshell.execDetached(["dmail", "show"]);
+                    else
+                        Quickshell.execDetached(["systemctl", "--user", "start", "dmail"]);
+                }
+            }
 
             Column {
                 id: vCol
