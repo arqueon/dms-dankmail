@@ -47,7 +47,10 @@ bar, powered by [dankmail](https://github.com/arqueon/dankmail).
 ## Requires
 
 [`dankmail`](https://github.com/arqueon/dankmail) (the `dmail`
-daemon) installed and set up with at least one account. Everything
+daemon) installed and set up with at least one account — on Arch,
+[`dankmail`](https://aur.archlinux.org/packages/dankmail) /
+[`dankmail-git`](https://aur.archlinux.org/packages/dankmail-git)
+from the AUR. Everything
 speaks the daemon's line-JSON IPC socket
 (`$XDG_RUNTIME_DIR/dankmail.sock`).
 
