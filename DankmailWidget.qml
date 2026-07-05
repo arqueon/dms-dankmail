@@ -34,10 +34,11 @@ PluginComponent {
     readonly property bool pillHidden: hideWhenZero && daemonConnected && unread === 0
 
     // openApp is PATH-proof: the DMS process may not have ~/.local/bin
-    // in PATH, so try the user install location first.
+    // in PATH, so try the user install location first. A failed exec
+    // kills the shell (|| never runs after it), so test before exec.
     function openApp() {
         if (root.daemonConnected)
-            Quickshell.execDetached(["sh", "-c", "exec \"$HOME/.local/bin/dmail\" show 2>/dev/null || exec dmail show"]);
+            Quickshell.execDetached(["sh", "-c", "[ -x \"$HOME/.local/bin/dmail\" ] && exec \"$HOME/.local/bin/dmail\" show; exec dmail show"]);
         else
             Quickshell.execDetached(["systemctl", "--user", "start", "dmail"]);
     }
