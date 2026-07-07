@@ -4,6 +4,10 @@ Live unread-mail badge and triage popout for the
 [DankMaterialShell](https://github.com/AvengeMedia/DankMaterialShell)
 bar, powered by [dankmail](https://github.com/arqueon/dankmail).
 
+<p align="center">
+  <img src="assets/screenshot.png" alt="Dankmail Unread popout on the DMS bar (demo data)" width="380">
+</p>
+
 ## Features
 
 ### Bar pill
