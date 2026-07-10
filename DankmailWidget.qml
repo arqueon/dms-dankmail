@@ -484,7 +484,7 @@ PluginComponent {
                                 id: rowHover
                             }
 
-                            // Row body: unread dot, sender/subject, time.
+                            // Row body: unread dot, sender/subject, star, time.
                             Row {
                                 anchors.left: parent.left
                                 anchors.right: rowActions.visible ? rowActions.left : parent.right
@@ -502,7 +502,7 @@ PluginComponent {
                                 }
 
                                 Column {
-                                    width: parent.width - 8 - Theme.spacingS * 2 - timeLabel.implicitWidth
+                                    width: parent.width - 8 - Theme.spacingS * 2 - timeLabel.implicitWidth - (starMark.visible ? starMark.width + Theme.spacingS : 0)
                                     spacing: 1
 
                                     StyledText {
@@ -523,6 +523,16 @@ PluginComponent {
                                         elide: Text.ElideRight
                                         maximumLineCount: 1
                                     }
+                                }
+
+                                DankIcon {
+                                    id: starMark
+                                    visible: mailRow.modelData.starred === true
+                                    name: "star"
+                                    filled: true
+                                    size: Theme.iconSizeSmall
+                                    color: Theme.warning
+                                    anchors.verticalCenter: parent.verticalCenter
                                 }
 
                                 StyledText {
@@ -548,6 +558,14 @@ PluginComponent {
                                     buttonSize: 26
                                     iconSize: 15
                                     onClicked: root.op(mailRow.modelData.unread ? "ops.markRead" : "ops.markUnread", mailRow.modelData.id)
+                                }
+
+                                DankActionButton {
+                                    iconName: "star"
+                                    buttonSize: 26
+                                    iconSize: 15
+                                    iconColor: mailRow.modelData.starred ? Theme.warning : Theme.surfaceText
+                                    onClicked: root.op(mailRow.modelData.starred ? "ops.unstar" : "ops.star", mailRow.modelData.id)
                                 }
 
                                 DankActionButton {
