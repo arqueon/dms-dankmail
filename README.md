@@ -37,11 +37,12 @@ bar, powered by [dankmail](https://github.com/arqueon/dankmail).
 - **Header actions**: compose (opens dankmail with the compose modal
   ready), sync now, do-not-disturb toggle, close.
 - **Latest inbox mail** (up to 20, scrollable): unread emphasis,
-  parsed sender names, per-day/HH:mm timestamps.
+  parsed sender names, per-day/HH:mm timestamps, and an amber star on
+  the threads you have starred.
 - **Per-message actions on hover** — the notification set: mark
-  read/unread, archive, trash, **snooze** (uses the snooze preset
-  configured in dankmail's settings, same as the notification
-  button), open in the webmail.
+  read/unread, **star/unstar**, archive, trash, **snooze** (uses the
+  snooze preset configured in dankmail's settings, same as the
+  notification button), open in the webmail.
 - **Click a message** to jump straight to it in the triage window.
 
 ### Plugin settings
