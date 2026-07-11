@@ -26,7 +26,7 @@ bar, powered by [dankmail](https://github.com/arqueon/dankmail).
 | Button | Action |
 |---|---|
 | **Left** | Open the popout |
-| **Middle** | Open the dankmail window (or start the `dmail` service if it's down) |
+| **Middle** | Toggle the dankmail window (or start the `dmail` service if it's down) |
 | **Right** | Sync now |
 
 ### Popout

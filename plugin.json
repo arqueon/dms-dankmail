@@ -2,7 +2,7 @@
   "id": "dankmailUnread",
   "name": "Dankmail Unread",
   "description": "Unread mail badge for dankmail with live updates over its IPC socket; click toggles the triage window",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "author": "arqueon",
   "icon": "mail",
   "type": "widget",

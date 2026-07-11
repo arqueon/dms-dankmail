@@ -33,12 +33,14 @@ PluginComponent {
 
     readonly property bool pillHidden: hideWhenZero && daemonConnected && unread === 0
 
-    // openApp is PATH-proof: the DMS process may not have ~/.local/bin
+    // toggleApp is PATH-proof: the DMS process may not have ~/.local/bin
     // in PATH, so try the user install location first. A failed exec
     // kills the shell (|| never runs after it), so test before exec.
-    function openApp() {
+    // toggle (not show) so a second middle click hides the window again,
+    // matching dms-dankcalendar's click model.
+    function toggleApp() {
         if (root.daemonConnected)
-            Quickshell.execDetached(["sh", "-c", "[ -x \"$HOME/.local/bin/dmail\" ] && exec \"$HOME/.local/bin/dmail\" show; exec dmail show"]);
+            Quickshell.execDetached(["sh", "-c", "[ -x \"$HOME/.local/bin/dmail\" ] && exec \"$HOME/.local/bin/dmail\" toggle; exec dmail toggle"]);
         else
             Quickshell.execDetached(["systemctl", "--user", "start", "dmail"]);
     }
@@ -276,7 +278,7 @@ PluginComponent {
             implicitHeight: hRow.implicitHeight
             visible: !root.pillHidden
 
-            // Middle click on the pill: open the app directly (left
+            // Middle click on the pill: toggle the app window (left
             // opens the popout, right syncs). Only MiddleButton is
             // accepted, so left/right fall through to BasePill.
             MouseArea {
@@ -285,7 +287,7 @@ PluginComponent {
                 // capsule margin were falling through to the bar canvas.
                 anchors.margins: -10
                 acceptedButtons: Qt.MiddleButton
-                onClicked: root.openApp()
+                onClicked: root.toggleApp()
             }
 
             Row {
@@ -385,7 +387,7 @@ PluginComponent {
 
                     TapHandler {
                         onTapped: {
-                            root.openApp();
+                            root.toggleApp();
                             if (popout.closePopout)
                                 popout.closePopout();
                         }
@@ -628,7 +630,7 @@ PluginComponent {
             implicitHeight: root.pillHidden ? 0 : vCol.implicitHeight
             visible: !root.pillHidden
 
-            // Middle click on the pill: open the app directly (left
+            // Middle click on the pill: toggle the app window (left
             // opens the popout, right syncs). Only MiddleButton is
             // accepted, so left/right fall through to BasePill.
             MouseArea {
@@ -637,7 +639,7 @@ PluginComponent {
                 // capsule margin were falling through to the bar canvas.
                 anchors.margins: -10
                 acceptedButtons: Qt.MiddleButton
-                onClicked: root.openApp()
+                onClicked: root.toggleApp()
             }
 
             Column {
