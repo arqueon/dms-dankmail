@@ -553,21 +553,8 @@ PluginComponent {
                                 anchors.verticalCenter: parent.verticalCenter
                                 spacing: 0
 
-                                DankActionButton {
-                                    iconName: mailRow.modelData.unread ? "drafts" : "mark_email_unread"
-                                    buttonSize: 26
-                                    iconSize: 15
-                                    onClicked: root.op(mailRow.modelData.unread ? "ops.markRead" : "ops.markUnread", mailRow.modelData.id)
-                                }
-
-                                DankActionButton {
-                                    iconName: "star"
-                                    buttonSize: 26
-                                    iconSize: 15
-                                    iconColor: mailRow.modelData.starred ? Theme.warning : Theme.surfaceText
-                                    onClicked: root.op(mailRow.modelData.starred ? "ops.unstar" : "ops.star", mailRow.modelData.id)
-                                }
-
+                                // Same order as dankmail's own triage row:
+                                // archive, delete, read, star, snooze, open.
                                 DankActionButton {
                                     iconName: "archive"
                                     buttonSize: 26
@@ -581,6 +568,21 @@ PluginComponent {
                                     iconSize: 15
                                     iconColor: Theme.error
                                     onClicked: root.op("ops.trash", mailRow.modelData.id)
+                                }
+
+                                DankActionButton {
+                                    iconName: mailRow.modelData.unread ? "drafts" : "mark_email_unread"
+                                    buttonSize: 26
+                                    iconSize: 15
+                                    onClicked: root.op(mailRow.modelData.unread ? "ops.markRead" : "ops.markUnread", mailRow.modelData.id)
+                                }
+
+                                DankActionButton {
+                                    iconName: "star"
+                                    buttonSize: 26
+                                    iconSize: 15
+                                    iconColor: mailRow.modelData.starred ? Theme.warning : Theme.surfaceText
+                                    onClicked: root.op(mailRow.modelData.starred ? "ops.unstar" : "ops.star", mailRow.modelData.id)
                                 }
 
                                 DankActionButton {
